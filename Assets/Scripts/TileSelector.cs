@@ -1,5 +1,4 @@
 ﻿
-
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -26,7 +25,7 @@ public class TileSelector : MonoBehaviour
 
     void Update()
     {
-        if (gameManager.currentPlayer.name == "white" /*&& gameManager.isAIPlayer== true*/)
+        if(gameManager.currentPlayer.name == "white" &&gameManager.isAIPlayer== true) 
         {
             Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
 
@@ -55,8 +54,9 @@ public class TileSelector : MonoBehaviour
             }
         }
     }
+    
 
-        public void EnterState()
+    public void EnterState()
         {
             enabled = true;
         }
@@ -69,4 +69,4 @@ public class TileSelector : MonoBehaviour
             move.EnterState(movingPiece);
         }
     
-}
+} 

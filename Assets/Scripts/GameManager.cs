@@ -30,9 +30,10 @@
 
 using System.Collections.Generic;
 using UnityEngine;
-/*This class basically sets up the pieces and board. it is key  for allowing pieces to move and informing the possible locations.
- It help with turned between the player and Ai. It also hold all the rules needed for the chess gme like castling and promotion.*/
-public class GameManager : MonoBehaviour  
+using UnityEngine.UI;
+using TMPro;
+
+public class GameManager : MonoBehaviour
 {
     public static GameManager instance;
 
@@ -59,29 +60,65 @@ public class GameManager : MonoBehaviour
     public Player black;
     public Player currentPlayer;
     public Player otherPlayer;
+    public AIPlayer protoype;
     public bool isAIPlayer = true;
+    public Button PVPButton;
+    public Button AIButton;
+    public Button Button2, Button3, Button4, Button5, Button6;
+    public TMP_Text Chess;
+    public GameObject backdrop;
 
 
     void Awake()
     {
         instance = this;
+        Chess.gameObject.SetActive(true);
+        PVPButton.gameObject.SetActive(true);
+        AIButton.gameObject.SetActive(true);
+        backdrop.gameObject.SetActive(true);
 
     }
-    private void Update()
-    {
-        
-    }
-    void Start ()
+
+    void Start()
     {
 
         pieces = new GameObject[8, 8];
         movedPawns = new List<GameObject>();
-
         white = new Player("white", true);
         black = new Player("black", false);
         otherPlayer = black; // AI
         currentPlayer = white;// real player       
         InitialSetup();
+    }
+
+
+    public void OnPVPButton() 
+    {
+        isAIPlayer = false;
+        Chess.gameObject.SetActive(false);
+        PVPButton.gameObject.SetActive(false);
+        PVPButton.gameObject.SetActive(false);
+        AIButton.gameObject.SetActive(false);
+        backdrop.gameObject.SetActive(false);
+        Button2.gameObject.SetActive(false);
+        Button3.gameObject.SetActive(false);
+        Button4.gameObject.SetActive(false);
+        Button5.gameObject.SetActive(false);
+        Button6.gameObject.SetActive(false);
+
+    }
+    public void OnAIButton() //
+    {
+        Chess.gameObject.SetActive(false);
+        PVPButton.gameObject.SetActive(false);
+        PVPButton.gameObject.SetActive(false);
+        AIButton.gameObject.SetActive(false);
+        backdrop.gameObject.SetActive(false);
+        Button2.gameObject.SetActive(false);
+        Button3.gameObject.SetActive(false);
+        Button4.gameObject.SetActive(false);
+        Button5.gameObject.SetActive(false);
+        Button6.gameObject.SetActive(false);
     }
 
     private void InitialSetup()
@@ -148,30 +185,28 @@ public class GameManager : MonoBehaviour
 
         return locations;
     }
- 
-    private void AddCastlingMoves(Piece kingPiece, Vector2Int gridPoint, List<Vector2Int> locations) //add to possible king locations 
+  
+    private void AddCastlingMoves(Piece kingPiece, Vector2Int gridPoint, List<Vector2Int> locations) 
     {
-        if (kingPiece.Moved) //check if the king moves -. reutrned as break one condition needed 
+        if (kingPiece.Moved) //checking if the king moved since it cannot move in order for castling to occur
             return;
 
-        if (!HasPieceAt(gridPoint.x + 1, gridPoint.y) && !HasPieceAt(gridPoint.x + 2, gridPoint.y)) //checks if there is any pieces between king and rook
+        if (!HasPieceAt(gridPoint.x + 1, gridPoint.y) && !HasPieceAt(gridPoint.x + 2, gridPoint.y)) 
         {
             GameObject rook = PieceAtGrid(new Vector2Int(7, gridPoint.y));
             if (rook != null && rook.GetComponent<Piece>().type == PieceType.Rook && !rook.GetComponent<Piece>().Moved)
             {
-                locations.Add(new Vector2Int(gridPoint.x + 2, gridPoint.y));  //adds the posibility 
+                locations.Add(new Vector2Int(gridPoint.x + 2, gridPoint.y));  //adds to the list
 
             }
         }
 
-        // Castling queenside 
         if (!HasPieceAt(gridPoint.x - 1, gridPoint.y) && !HasPieceAt(gridPoint.x - 2, gridPoint.y) && !HasPieceAt(gridPoint.x - 3, gridPoint.y))//checks if there is any pieces between king and rook
         {
-            GameObject rook = PieceAtGrid(new Vector2Int(0, gridPoint.y));  
+            GameObject rook = PieceAtGrid(new Vector2Int(0, gridPoint.y));
             if (rook != null && rook.GetComponent<Piece>().type == PieceType.Rook && !rook.GetComponent<Piece>().Moved)
             {
-                locations.Add(new Vector2Int(gridPoint.x - 2, gridPoint.y));  //adds the posibility 
-            }
+                locations.Add(new Vector2Int(gridPoint.x - 2, gridPoint.y));              }
         }
     }
     public bool HasPieceAt(int x, int y)
@@ -179,35 +214,40 @@ public class GameManager : MonoBehaviour
         return PieceAtGrid(new Vector2Int(x, y)) != null;
     }
 
-    public void Move(GameObject piece, Vector2Int gridPoint)  //controlling piece movements
+    public void Move(GameObject piece, Vector2Int gridPoint)
     {
-        
         Piece pieceComponent = piece.GetComponent<Piece>();
         pieceComponent.Moved = true;
-        if (pieceComponent.type == PieceType.Pawn && !HasPawnMoved(piece))
 
+        if (pieceComponent.type == PieceType.Pawn && !HasPawnMoved(piece))
         {
-            movedPawns.Add(piece);
+            movedPawns.Add(piece); 
         }
 
-
         Vector2Int startGridPoint = GridForPiece(piece);
+        GameObject pieceAtDestination = PieceAtGrid(gridPoint);
+        if (pieceAtDestination != null && !FriendlyPieceAt(gridPoint))
+        {
+            CapturePieceAt(gridPoint); 
+        }
+
         pieces[startGridPoint.x, startGridPoint.y] = null;
         pieces[gridPoint.x, gridPoint.y] = piece;
         board.MovePiece(piece, gridPoint);
 
-
-        if (pieceComponent.type == PieceType.King && Mathf.Abs(startGridPoint.x - gridPoint.x) == 2)  // Castling move
+        if (pieceComponent.type == PieceType.King && Mathf.Abs(startGridPoint.x - gridPoint.x) == 2)
         {
-            int rookStartX = gridPoint.x == 2 ? 0 : 7; 
+            int rookStartX = gridPoint.x == 2 ? 0 : 7;
             int rookEndX = gridPoint.x == 2 ? 3 : 5;
 
             GameObject rook = PieceAtGrid(new Vector2Int(rookStartX, startGridPoint.y));
             pieces[rookStartX, startGridPoint.y] = null;
             pieces[rookEndX, startGridPoint.y] = rook;
-            board.MovePiece(rook, new Vector2Int(rookEndX, startGridPoint.y));  
+            board.MovePiece(rook, new Vector2Int(rookEndX, startGridPoint.y));
         }
-        CheckPawnPromotion(piece, gridPoint); //check if it is pawn on the 8th row. 
+
+        CheckPawnPromotion(piece, gridPoint);
+        
     }
 
 
@@ -222,11 +262,11 @@ public class GameManager : MonoBehaviour
 
         if (pieceComponent.type == PieceType.Pawn)
         {
-            if ( gridPoint.y == 7)
+            if (gridPoint.y == 7)
             {
                 PromotePawn(pawn, gridPoint);
             }
-            else if ( gridPoint.y == 0)
+            else if (gridPoint.y == 0)
             {
                 PromotePawn(pawn, gridPoint);
             }
@@ -235,29 +275,40 @@ public class GameManager : MonoBehaviour
 
     private void PromotePawn(GameObject pawn, Vector2Int gridPoint) //promotion. need to fix 
     {
-        AddPiece(whiteQueen, white, gridPoint.x, gridPoint.y);
-
-      
+        if (pawn.name == "white")
+        {
+            AddPiece(whiteQueen, white, gridPoint.x, gridPoint.y);
+        }
+        else
+            AddPiece(blackQueen, black, gridPoint.x, gridPoint.y);
 
         Destroy(pawn);
 
     }
-  
-    
-    public void CapturePieceAt(Vector2Int gridPoint)
-    {
-        GameObject pieceToCapture = PieceAtGrid(gridPoint);
-        if (pieceToCapture.GetComponent<Piece>().type == PieceType.King)
-        {
-            Debug.Log(currentPlayer.name + " wins!");
-            Destroy(board.GetComponent<TileSelector>());
-            Destroy(board.GetComponent<MoveSelector>());
-        }
-        currentPlayer.capturedPieces.Add(pieceToCapture);
-        pieces[gridPoint.x, gridPoint.y] = null;
-        Destroy(pieceToCapture);
-    }
 
+
+   public void CapturePieceAt(Vector2Int gridPoint)
+{
+    GameObject piececaptured = PieceAtGrid(gridPoint);
+    if (piececaptured == null) return;
+
+        Player owner;
+        if (white.pieces.Contains(piececaptured))
+            owner= white;
+        else 
+            owner= black;
+
+        if (owner == null) return;
+
+    pieces[gridPoint.x, gridPoint.y] = null;
+    
+    owner.pieces.Remove(piececaptured);
+    
+    currentPlayer.capturedPieces.Add(piececaptured);
+    
+    Destroy(piececaptured);
+    
+}
     public void SelectPiece(GameObject piece)
     {
         board.SelectPiece(piece);
@@ -275,16 +326,17 @@ public class GameManager : MonoBehaviour
 
     public GameObject PieceAtGrid(Vector2Int gridPoint)
     {
-        if (gridPoint.x > 7 || gridPoint.y > 7 || gridPoint.x < 0 || gridPoint.y < 0)
-        {
+        if (gridPoint.x < 0 || gridPoint.x > 7 || gridPoint.y < 0 || gridPoint.y > 7)
             return null;
-        }
         return pieces[gridPoint.x, gridPoint.y];
     }
 
+
     public Vector2Int GridForPiece(GameObject piece)
     {
-        for (int i = 0; i < 8; i++) 
+        if (piece == null) return new Vector2Int(-1, -1);
+
+        for (int i = 0; i < 8; i++)
         {
             for (int j = 0; j < 8; j++)
             {
@@ -294,15 +346,15 @@ public class GameManager : MonoBehaviour
                 }
             }
         }
-
-        return new Vector2Int(-1, -1);
+        return new Vector2Int(-1, -1); 
     }
 
     public bool FriendlyPieceAt(Vector2Int gridPoint)
     {
         GameObject piece = PieceAtGrid(gridPoint);
 
-        if (piece == null) {
+        if (piece == null)
+        {
             return false;
         }
 
@@ -314,29 +366,20 @@ public class GameManager : MonoBehaviour
         return true;
     }
 
-    public void UndoMove(GameObject piece, Vector2Int origin, Vector2Int destination)
+
+
+
+    public void NextPlayer()
     {
-      
-        pieces[origin.x, origin.y] = piece;  // reset the pieces location
-        pieces[destination.x, destination.y] = null;  //remove the piece at the old destination
-
-
-    }
-
-
-    public void NextPlayer() //this is changing the AI- calling the AI Script.
-    {
-        
-        AIPlayer aiPlayer = FindObjectOfType<AIPlayer>();
-
-        Player tempPlayer = currentPlayer;
+        Player temp = currentPlayer;
         currentPlayer = otherPlayer;
-        otherPlayer = tempPlayer;
-        if (/*isAIPlayer && */currentPlayer == black) 
-        {
-            Debug.Log("AI called");
-            aiPlayer.MakeRandomMove();
-        }
+        otherPlayer = temp;
 
+        // If it's AI's turn and  is enabled
+        if (currentPlayer == black && isAIPlayer)
+        {
+            AIPlayer aiPlayer = FindObjectOfType<AIPlayer>();
+                aiPlayer.MakeBestMove();
+        }
     }
 }
